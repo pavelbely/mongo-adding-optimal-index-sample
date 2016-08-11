@@ -23,7 +23,7 @@ public class MongoConfig {
 
     @Bean
     public MongoDbFactory mongoDbFactory() {
-        return new SimpleMongoDbFactory(mongoClient(), "Comrade");
+        return new SimpleMongoDbFactory(mongoClient(), "comrade");
     }
 
     @Bean
