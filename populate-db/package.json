@@ -1,0 +1,11 @@
+{
+  "name": "populate-db",
+  "version": "0.0.1",
+  "description": "The script to populate Comrade db",
+  "main": "scriptToPopulateDB.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Pavel Bely",
+  "license": "ISC"
+}
