@@ -1,9 +1,9 @@
 # Choosing optimal MongoDB index for a specific query
 
 As you may known having an appropriate index can significantly improve query performance.
-But what counts as appropriate index? I would like to share with you my experience of adding one.
+But what counts as appropriate index? I would like to share with you my humble experience of adding one.
 
-We will profile the database of **Comrade** - food ordering app for restaurant of that name.
+We will profile the database of **Comrade** application - food ordering app for restaurant of that name.
 
 ## Requirements
 - MongoDB installed
@@ -41,7 +41,7 @@ db.order.findOne()
 
 One would argue that saving orders in SQL database is a better idea and probably it is. Ok, we're doing so just for demostration purposes.
 
-Customers make orders by sending **POST** http requests to **Comrade** app with the body of that kind.
+Customers make orders by sending **POST** http requests to **Comrade** app.
 ```js
 POST /order HTTP/1.1
 Host: localhost:8080
@@ -92,7 +92,7 @@ If customer has enough bonus points they are being spent and her meal is served 
 ## Profiling MongoDB indexes
 ### Import data
 
-First let's load some data into you database.
+First let's load some data into your database.
 Please download [comrade.json](comrade.json) and import it using the following command
 ```
 mongoimport --db comrade --collection order --file comrade.json
@@ -239,56 +239,11 @@ And the first one when saving your processed order to db.
 
 ### Using explain plan to measure queries performance
 
-Ok, let's check how effective these queries are using **MongoDB explain plan**.
+Ok, let's check how effective search query is using **MongoDB explain plan**.
 
 ```js
-db.order.find({ "customer" : "Natasha_Ivanova", "bonusPoint" : true }).explain("executionStats");
+db.order.explain("executionStats").count({customer : "Natasha_Ivanova", bonusPoint : 1})
 
-{
-    "queryPlanner" : {
-      ...
-      "winningPlan" : {
-            "stage" : "COLLSCAN",
-            "filter" : {
-                "$and" : [
-                    {
-                        "bonusPoint" : {
-                            "$eq" : true
-                        }
-                    },
-                    {
-                        "customer" : {
-                            "$eq" : "Natasha_Ivanova"
-                        }
-                    }
-                ]
-            },
-            "direction" : "forward"
-        }
-    ...
-    "executionStats" : {
-        "executionSuccess" : true,
-        "nReturned" : 1,
-        "executionTimeMillis" : 14,
-        "totalKeysExamined" : 0,
-        "totalDocsExamined" : 10001,
-    ...
-}
-```
-
-The output is pretty long but for now we are only concerned about **winningPlan** being **COLLSCAN** (which is obvious since we haven't added any indexes yet) and **executionTimeMillis**=14 and **totalDocsExamined**=10001.
-That means the whole collection has been scanned in order to find Natasha's bonus points and that took 14 milliseconds.
-This might seem like not that much, but let's try to improve it a bit.
-
-### Add an index and check whether it improves performance
-
-Let's add compound index on **customer** and **bonusPoint** fields.
-```js
-db.order.createIndex({customer : 1, bonusPoints : 1});
-```
-
-And now run that explain query from the previous section again.
-```js
 {
     "queryPlanner" : {
         "plannerVersion" : 1,
@@ -298,7 +253,7 @@ And now run that explain query from the previous section again.
             "$and" : [
                 {
                     "bonusPoint" : {
-                        "$eq" : true
+                        "$eq" : 1.0
                     }
                 },
                 {
@@ -309,106 +264,83 @@ And now run that explain query from the previous section again.
             ]
         },
         "winningPlan" : {
-            "stage" : "FETCH",
-            "filter" : {
-                "bonusPoint" : {
-                    "$eq" : true
-                }
-            },
+            "stage" : "COUNT",
             "inputStage" : {
-                "stage" : "IXSCAN",
+                "stage" : "COLLSCAN",
+        ...
+    "executionStats" : {
+        "executionSuccess" : true,
+        "nReturned" : 0,
+        "executionTimeMillis" : 15,
+        "totalKeysExamined" : 0,
+        "totalDocsExamined" : 10001,
+```
+
+The output is pretty long but for now we are only concerned about **winningPlan** being **COLLSCAN** and **executionTimeMillis**=15 and **totalDocsExamined**=10001.
+That means the whole collection has been scanned (which is obvious since we haven't added any indexes yet) in order to find Natasha's bonus points and that took 15 milliseconds. You might say 15 ms is no big deal, but let's try to improve it a bit.
+
+### Add an index and check whether it improves performance
+
+Let's add compound index on **customer** and **bonusPoint** fields.
+```js
+db.order.createIndex({customer : 1, bonusPoint : 1});
+```
+
+And now run that explain query from the previous section again.
+```js
+db.order.explain("executionStats").count({customer : "Natasha_Ivanova", bonusPoint : 1})
+
+{
+    "queryPlanner" : {
+        "plannerVersion" : 1,
+        "namespace" : "comrade.order",
+        "indexFilterSet" : false,
+        "parsedQuery" : {
+            "$and" : [
+                {
+                    "bonusPoint" : {
+                        "$eq" : 1.0
+                    }
+                },
+                {
+                    "customer" : {
+                        "$eq" : "Natasha_Ivanova"
+                    }
+                }
+            ]
+        },
+        "winningPlan" : {
+            "stage" : "COUNT",
+            "inputStage" : {
+                "stage" : "COUNT_SCAN",
                 "keyPattern" : {
                     "customer" : 1.0,
-                    "bonusPoints" : 1.0
+                    "bonusPoint" : 1.0
                 },
-                "indexName" : "customer_1_bonusPoints_1",
+                "indexName" : "customer_1_bonusPoint_1",
                 "isMultiKey" : false,
                 "isUnique" : false,
                 "isSparse" : false,
                 "isPartial" : false,
-                "indexVersion" : 1,
-                "direction" : "forward",
-                "indexBounds" : {
-                    "customer" : [
-                        "[\"Natasha_Ivanova\", \"Natasha_Ivanova\"]"
-                    ],
-                    "bonusPoints" : [
-                        "[MinKey, MaxKey]"
-                    ]
-                }
+                "indexVersion" : 1
             }
         },
         "rejectedPlans" : []
     },
     "executionStats" : {
         "executionSuccess" : true,
-        "nReturned" : 1,
-        "executionTimeMillis" : 0,
+        "nReturned" : 0,
+        "executionTimeMillis" : 2,
         "totalKeysExamined" : 1,
-        "totalDocsExamined" : 1,
-        "executionStages" : {
-            "stage" : "FETCH",
-            "filter" : {
-                "bonusPoint" : {
-                    "$eq" : true
-                }
-            },
-            "nReturned" : 1,
-            "executionTimeMillisEstimate" : 0,
-            "works" : 2,
-            "advanced" : 1,
-            "needTime" : 0,
-            "needYield" : 0,
-            "saveState" : 0,
-            "restoreState" : 0,
-            "isEOF" : 1,
-            "invalidates" : 0,
-            "docsExamined" : 1,
-            "alreadyHasObj" : 0,
-            "inputStage" : {
-                "stage" : "IXSCAN",
-                "nReturned" : 1,
-                "executionTimeMillisEstimate" : 0,
-                "works" : 2,
-                "advanced" : 1,
-                "needTime" : 0,
-                "needYield" : 0,
-                "saveState" : 0,
-                "restoreState" : 0,
-                "isEOF" : 1,
-                "invalidates" : 0,
-                "keyPattern" : {
-                    "customer" : 1.0,
-                    "bonusPoints" : 1.0
-                },
-                "indexName" : "customer_1_bonusPoints_1",
-                "isMultiKey" : false,
-                "isUnique" : false,
-                "isSparse" : false,
-                "isPartial" : false,
-                "indexVersion" : 1,
-                "direction" : "forward",
-                "indexBounds" : {
-                    "customer" : [
-                        "[\"Natasha_Ivanova\", \"Natasha_Ivanova\"]"
-                    ],
-                    "bonusPoints" : [
-                        "[MinKey, MaxKey]"
-                    ]
-                },
-                "keysExamined" : 1,
-                "dupsTested" : 0,
-                "dupsDropped" : 0,
-                "seenInvalidated" : 0
-            }
-        }
-    },
-    ...
+        "totalDocsExamined" : 0,
 ```
 
-As you can see this index makes a difference. Only 1 index key and one document were examined during this query and that took less that a 1 milliseconds.
+As you can see this index makes a difference.
+Only 1 index key was examined during this query and that took 2 millis.
 ```js
-"executionTimeMillis" : 0,
+"executionTimeMillis" : 2,
 "totalKeysExamined" : 1,
-"totalDocsExamined" : 1,
+"totalDocsExamined" : 0,
 ```
+
+Congrats, comrade, you did a good job!
