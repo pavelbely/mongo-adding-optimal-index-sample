@@ -3,11 +3,11 @@ let Chance = require('chance');
 
 let chance = new Chance();
 
-const PRODUCTS = ["Mushroom soup", "Beetrot cold soup", "Pureed soup", "Cabbage stew",
-  "Chicken livers", "Ceasar salad", "Greek salad", "Meat balls", "Tea", "Buttermilk",
+const PRODUCTS = ["Mushroom soup", "Beetrot cold soup", "Pureed soup", "Stewed cabbage in a pot",
+  "Chicken livers", "Ceasar salad", "Greek salad", "Meatballs", "Tea", "Buttermilk",
   "Coffee", "Mojito", "A loaf of bread"];
 
-const CUSTOMERS_COUNT = 1000;
+const CUSTOMERS_COUNT = 2000;
 
 const OPTIONS = {
   hostname: 'localhost',
@@ -54,7 +54,6 @@ function randomItems() {
 function randomOrder(customer) {
   return {
     customer : customer,
-    type : chance.pickone(["take-away", "dine-in"]),
     items : randomItems()
   }
 }

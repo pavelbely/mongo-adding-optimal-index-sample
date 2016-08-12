@@ -14,8 +14,6 @@ public class Order {
 
     private String customer;
 
-    private String type;
-
     private Collection<Item> items = new LinkedHashSet<>();
 
     private boolean bonusPoint;
@@ -36,14 +34,6 @@ public class Order {
 
     public void setCustomer(String customer) {
         this.customer = customer;
-    }
-
-    public String getType() {
-        return type;
-    }
-
-    public void setType(String type) {
-        this.type = type;
     }
 
     public Collection<Item> getItems() {

@@ -79,8 +79,8 @@ public class OrderController {
     }
 
     private String buildComment(Order order) {
-        String greeting = order.isGivenAsBonus() ? "Enjoy your FREE meal" : "Bon appetite";
-        return greeting + ", comrade!";
+        String prefix = order.isGivenAsBonus() ? "Enjoy your FREE meal" : "Bon appetite";
+        return prefix + ", comrade!";
     }
 
     private double countTotal(Order order) {
