@@ -35,19 +35,20 @@ public class OrderController {
         if (order == null) {
             throw new IllegalArgumentException("Order can't be null");
         }
-        String customer = order.getCustomer();
-        int bonusPointCount = processBonusPoints(order, countExistingBonusPoints(customer).intValue() + 1);
-        mongo.save(order, "order");
+        int bonusPointCount = processOrder(order);
         return serveBill(order, bonusPointCount);
     }
 
-    private int processBonusPoints(@RequestBody Order order, int bonusPointCount) {
+    private synchronized int processOrder(Order order) {
+        String customer = order.getCustomer();
+        int bonusPointCount = countExistingBonusPoints(customer).intValue() + 1;
         boolean isEligibleForBonus = bonusPointCount >= BONUS_POINTS_REQUIRED_FOR_FREE_LUNCH;
-        populateOrder(order, isEligibleForBonus);
         if (isEligibleForBonus) {
-            spendBonusPoints(order.getCustomer());
-            return 0;
+            spendBonusPoints(customer);
+            bonusPointCount = 0;
         }
+        populateOrder(order, isEligibleForBonus);
+        mongo.save(order, "order");
         return bonusPointCount;
     }
 
