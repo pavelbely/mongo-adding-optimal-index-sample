@@ -3,11 +3,7 @@
 As you may known having an appropriate index can significantly improve query performance.
 But what counts as appropriate index? I would like to share with you my humble experience of adding one.
 
-We will profile the database of **Comrade** application - food ordering app for restaurant of that name.
-
-## Requirements
-- MongoDB installed
-- JRE TODO - which version
+We will profile the database of **Comrade** application - food ordering app for soviet-style restaurant of that name.
 
 ## Comrade application
 
@@ -39,7 +35,7 @@ db.order.findOne()
 }
 ```
 
-One would argue that saving orders in SQL database is a better idea and probably it is. Ok, we're doing so just for demostration purposes.
+One would argue that saving orders in SQL database is a better idea and probably it is. We're doing so just for demostration purposes.
 
 Customers make orders by sending **POST** http requests to **Comrade** app.
 ```js
@@ -89,7 +85,14 @@ If customer has enough bonus points they are being spent and her meal is served 
 }
 ```
 
-## Profiling MongoDB indexes
+## Adding MongoDB indexes
+
+## Requirements
+You need to have MongoDB installed and Comrade app running in order to follow through this tutorial.
+
+### Start Comrade application
+TODO
+
 ### Import data
 
 First let's load some data into your database.
@@ -98,9 +101,6 @@ Please download [comrade.json](comrade.json) and import it using the following c
 mongoimport --db comrade --collection order --file comrade.json
 ```
 10000 documents should have been imported into **order** collection.
-
-### Start Comrade application
-TODO
 
 ### Set MongoDB profiler on
 
@@ -114,10 +114,14 @@ db.setProfilingLevel(2);
 ### Make an order and see what happens at backend
 Make a new order by sending http request as described above. If you are using Postman - please find Postman collection with order request attached.
 
-Now view profiler data:
+Let's see what we have in profiler collection.
 ```js
 db.system.profile.find().sort({$natural:-1}).pretty();
+```
 
+This command will return log entries in **system.profile** collection sorted by timestamp.
+```js
+/* 1 */
 /* 1 */
 {
     "op" : "insert",
@@ -127,22 +131,17 @@ db.system.profile.find().sort({$natural:-1}).pretty();
         "ordered" : true,
         "documents" : [
             {
-                "_id" : ObjectId("57addc24e6eb6c40dc1bc6f2"),
+                "_id" : ObjectId("57b1db55f829b7015d0a82d0"),
                 "customer" : "Natasha_Ivanova",
                 "items" : [
                     {
-                        "product" : "Cold beetrot soup",
-                        "price" : 1.5,
-                        "quantity" : 1
-                    },
-                    {
-                        "product" : "A loaf of bread",
-                        "price" : 0.05,
-                        "quantity" : 1
+                        "product" : "Beetrot cold soup",
+                        "price" : 1.3,
+                        "quantity" : 3
                     },
                     {
                         "product" : "Buttermilk",
-                        "price" : 0.5,
+                        "price" : 3.4,
                         "quantity" : 1
                     }
                 ],
@@ -177,7 +176,7 @@ db.system.profile.find().sort({$natural:-1}).pretty();
     "protocol" : "op_query",
     "millis" : 0,
     "execStats" : {},
-    "ts" : ISODate("2016-08-12T14:24:36.459Z"),
+    "ts" : ISODate("2016-08-15T15:10:13.513Z"),
     "client" : "127.0.0.1",
     "allUsers" : [],
     "user" : ""
@@ -196,29 +195,29 @@ db.system.profile.find().sort({$natural:-1}).pretty();
     },
     "keyUpdates" : 0,
     "writeConflicts" : 0,
-    "numYield" : 78,
+    "numYield" : 781,
     "locks" : {
         "Global" : {
             "acquireCount" : {
-                "r" : NumberLong(158)
+                "r" : NumberLong(1564)
             }
         },
         "Database" : {
             "acquireCount" : {
-                "r" : NumberLong(79)
+                "r" : NumberLong(782)
             }
         },
         "Collection" : {
             "acquireCount" : {
-                "r" : NumberLong(79)
+                "r" : NumberLong(782)
             }
         }
     },
     "responseLength" : 62,
     "protocol" : "op_query",
-    "millis" : 7,
+    "millis" : 53,
     "execStats" : {},
-    "ts" : ISODate("2016-08-12T14:24:36.459Z"),
+    "ts" : ISODate("2016-08-15T15:10:13.512Z"),
     "client" : "127.0.0.1",
     "allUsers" : [],
     "user" : ""
@@ -239,7 +238,7 @@ And the first one when saving your processed order to db.
 
 ### Using explain plan to measure queries performance
 
-Ok, let's check how effective search query is using **MongoDB explain plan**.
+Cool, now let's check how effective search query is using **MongoDB explain plan**.
 
 ```js
 db.order.explain("executionStats").count({customer : "Natasha_Ivanova", bonusPoint : 1})
@@ -271,13 +270,13 @@ db.order.explain("executionStats").count({customer : "Natasha_Ivanova", bonusPoi
     "executionStats" : {
         "executionSuccess" : true,
         "nReturned" : 0,
-        "executionTimeMillis" : 15,
+        "executionTimeMillis" : 51,
         "totalKeysExamined" : 0,
-        "totalDocsExamined" : 10001,
+        "totalDocsExamined" : 100001,
 ```
 
-The output is pretty long but for now we are only concerned about **winningPlan** being **COLLSCAN** and **executionTimeMillis**=15 and **totalDocsExamined**=10001.
-That means the whole collection has been scanned (which is obvious since we haven't added any indexes yet) in order to find Natasha's bonus points and that took 15 milliseconds. You might say 15 ms is no big deal, but let's try to improve it a bit.
+The output is pretty long but for now we are only concerned about **winningPlan** being **COLLSCAN** and **executionTimeMillis**=51 and **totalDocsExamined**=100001.
+**COLLSCAN** means the whole collection (100001 documents) has been scanned (which is obvious since we haven't added any indexes yet) in order to find Natasha's bonus points and that took 51 milliseconds. You might say 51 ms is no big deal, but let's try to improve it a bit.
 
 ### Add an index and check whether it improves performance
 
@@ -343,4 +342,5 @@ Only 1 index key was examined during this query and that took 2 millis.
 "totalDocsExamined" : 0,
 ```
 
-Congrats, comrade, you did a good job!
+Congrats, comrade, you did a great job!
+Even though adding of this index was pretty obvious since it included all the fields in the search query, it is good to make sure it actually was helpful.

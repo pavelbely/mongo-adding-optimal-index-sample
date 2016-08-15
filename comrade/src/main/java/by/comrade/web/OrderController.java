@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/order")
 public class OrderController {
 
-    private static final int BONUS_POINTS_REQUIRED_FOR_FREE_LUNCH = 5;
+    private static final int BONUS_POINTS_REQUIRED_FOR_FREE_LUNCH = 10;
 
     @Autowired
     private MongoTemplate mongo;
