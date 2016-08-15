@@ -1,3 +1,5 @@
+The blog post on this project is avalable [here](https://medium.com/p/bdc68356e6c0)
+
 # Choosing optimal MongoDB index for a specific query
 
 As you may known having an appropriate index can significantly improve query performance.
@@ -118,7 +120,7 @@ db.setProfilingLevel(2);
 ```
 
 ### Make an order and see what happens at backend
-Make a new order by sending http request as described above. If you are using Postman - please find Postman collection with order request attached.
+Make a new order by sending http request as described above. If you are using Postman - — feel free to [![Run in Postman](https://run.pstmn.io/button.svg)](https://app.getpostman.com/run-collection/1095ea8a39dfd78cc82e).
 
 Let's see what we have in profiler collection.
 ```js
