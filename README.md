@@ -88,10 +88,16 @@ If customer has enough bonus points they are being spent and her meal is served 
 ## Adding MongoDB indexes
 
 ## Requirements
-You need to have MongoDB installed and Comrade app running in order to follow through this tutorial.
+- MongoDB installed
+- JRE 1.8 or higher
 
 ### Start Comrade application
-TODO
+
+[Download](https://github.com/pavelbely/mongo-adding-optimal-index-sample/releases/download/0.0.1/comrade-rest-service-0.0.1.jar) or build with gradle **comrade** application
+Run it as
+```
+java -jar comrade-rest-service-0.0.1.jar
+```
 
 ### Import data
 
