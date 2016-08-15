@@ -1,5 +1,8 @@
 let http = require('http');
+let agent = new http.Agent( {maxSockets: 1} );
+var rp = require('request-promise');
 let Chance = require('chance');
+let async = require('async');
 
 let chance = new Chance();
 
@@ -7,7 +10,7 @@ const PRODUCTS = ["Mushroom soup", "Beetrot cold soup", "Pureed soup", "Stewed c
   "Chicken livers", "Ceasar salad", "Greek salad", "Meatballs", "Tea", "Buttermilk",
   "Coffee", "Mojito", "A loaf of bread"];
 
-const CUSTOMERS_COUNT = 2000;
+const CUSTOMERS_COUNT = 10000;
 
 const OPTIONS = {
   hostname: 'localhost',
@@ -18,22 +21,6 @@ const OPTIONS = {
     'Content-Type': 'application/json'
   }
 };
-
-function makeOrder(order) {
-  let req = http.request(OPTIONS, (res) => {
-    if (('' + req.statusCode).match(/^5\d\d$/)) {
-      console.log('Server error ' + req.statusCode);
-    }
-  });
-
-  req.on('error', (e) => {
-    console.log('problem with request: ${e.message}');
-  });
-
-  // write data to request body
-  req.write(order);
-  req.end();
-}
 
 function randomItem() {
   return {
@@ -58,17 +45,43 @@ function randomOrder(customer) {
   }
 }
 
-function addCustomerOrders() {
+function getCustomerOrders() {
+  let customerOrders = [];
   let customer = chance.first() + "_" + chance.last();
-  for (var i = 0; i < chance.natural({min: 3, max: 10}); i++) {
-    makeOrder(JSON.stringify(randomOrder(customer)));
+  for (var i = 0; i < chance.natural({min: 7, max: 20}); i++) {
+    customerOrders.push(randomOrder(customer));
   }
+  return customerOrders;
 }
 
-function populateComradeDB() {
+function getOrders() {
+  let orders = [];
+  debugger;
   for (var i = 0; i < CUSTOMERS_COUNT; i++) {
-    addCustomerOrders();
+    orders = orders.concat(getCustomerOrders());
   }
+  return orders;
 }
 
-populateComradeDB();
+function makeOrder(order, callback) {
+  const options = {
+    url :  "http://localhost:8080/order",
+    method: 'POST',
+    body : order,
+    json : true,
+    agent : agent
+  };
+
+  rp(options,
+    function(err, res, body) {
+      callback(err, body);
+    }
+  );
+}
+
+let orders = getOrders();
+console.log(orders.length);
+async.map(orders, makeOrder, function (err, res){
+  if (err) return console.log(err);
+  // console.log(res);
+});

@@ -7,5 +7,11 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Pavel Bely",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "async": "^2.0.1",
+    "bluebird": "^3.4.1",
+    "request": "^2.74.0",
+    "request-promise": "^4.1.1"
+  }
 }
