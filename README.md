@@ -1,4 +1,4 @@
-The blog post on this project is avalable [here](https://medium.com/p/bdc68356e6c0)
+The blog post on this project is avalable [here](https://medium.com/@pavelbely/e-blog-post-on-this-project-is-avalable-here-https-medium-com-p-bdc68356e6c0-a73f8d288979#.q5yb37d6b)
 
 # Choosing optimal MongoDB index for a specific query
 
